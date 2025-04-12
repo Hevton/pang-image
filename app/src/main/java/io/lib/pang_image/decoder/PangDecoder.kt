@@ -1,4 +1,4 @@
-package com.example.imageloader.pang.decoder
+package io.lib.pang_image.decoder
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -21,7 +21,16 @@ object PangDecoder {
                 inJustDecodeBounds = false
                 inSampleSize = calculateInSampleSize(this, decodeRequest.reqWidth, decodeRequest.reqHeight)
 
-                inScaled = false
+                if(decodeRequest.inScale) {
+                    inScaled = true
+                    if (outWidth >= outHeight) {
+                        inDensity = outWidth
+                        inTargetDensity = decodeRequest.reqWidth * inSampleSize
+                    } else {
+                        inDensity = outHeight
+                        inTargetDensity = decodeRequest.reqHeight * inSampleSize
+                    }
+                }
 
                 BitmapFactory.decodeFile(decodeRequest.filePath, this)
             }
