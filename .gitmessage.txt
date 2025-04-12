@@ -1,0 +1,17 @@
+# <type>(<scope>): <subject>
+# 예시: feat(ui): 로그인 버튼 추가
+
+# type (커밋 목적)
+# feat      : 새로운 기능 추가
+# fix       : 버그 수정
+# perf      : 성능 개선
+# refactor  : 코드 리팩토링 (기능 변화 없음)
+# style     : 코드 스타일 변경 (포맷, 세미콜론 등)
+# chore     : 빌드 설정, 패키지 추가 등
+# docs      : 문서 추가/수정
+# test      : 테스트 추가 또는 수정
+# ci        : CI/CD 설정 수정
+# build     : 빌드 관련 설정 수정 (Gradle 등)
+# revert    : 이전 커밋 되돌리기
+# init      : 프로젝트 초기 설정
+
