@@ -1,6 +1,5 @@
 package io.lib.pang_image.disk
 
-import android.content.Context
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -16,9 +15,9 @@ object DiskCache {
     private lateinit var fileQueue: PriorityQueue<File> // 항상 cacheMutex 안에서만 접근
     private var totalSize = 0L // 항상 cacheMutex 안에서만 접근
 
-    private fun ensureInitialized(context: Context) { // 항상 cacheMutex 안에서만 접근
+    private fun ensureInitialized(cachePath: String) { // 항상 cacheMutex 안에서만 접근
         if (!isInitialized.get()) {
-            val dir = context.cacheDir
+            val dir = File(cachePath)
             val files = dir.listFiles()?.toMutableList() ?: mutableListOf()
             fileQueue = PriorityQueue<File>(files.size) { a, b ->
                 a.lastModified().compareTo(b.lastModified())
@@ -30,9 +29,16 @@ object DiskCache {
         }
     }
 
-    suspend fun clear(context: Context, newFileSize: Long) {
+    suspend fun get(cachePath: String, key: String): File? {
+        return cacheMutex.withLock {
+            val file = File(cachePath, key)
+            if (file.exists()) file else null
+        }
+    }
+
+    suspend fun clear(cachePath: String, newFileSize: Long) {
         cacheMutex.withLock {
-            ensureInitialized(context)
+            ensureInitialized(cachePath)
 
             while (totalSize + newFileSize > MAXSIZE) {
                 val file = fileQueue.poll() ?: break
@@ -44,9 +50,9 @@ object DiskCache {
         }
     }
 
-    suspend fun add(context: Context, file: File) {
+    suspend fun add(cachePath: String, file: File) {
         cacheMutex.withLock {
-            ensureInitialized(context)
+            ensureInitialized(cachePath)
 
             file.setLastModified(System.currentTimeMillis())
             fileQueue.add(file)
