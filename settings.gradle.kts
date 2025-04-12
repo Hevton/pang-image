@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "pang-image"
 include(":app")
- 
