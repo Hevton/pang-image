@@ -2,28 +2,37 @@ package com.example.imageloader.pang.decoder
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import io.lib.pang_image.domain.DecodeRequest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object PangDecoder {
     suspend fun decodeFromFile(
-        filePath: String,
-        reqWidth: Int,
-        reqHeight: Int,
+        decodeRequest: DecodeRequest,
         decodeDispatcher: CoroutineDispatcher = Dispatchers.Default
     ): Result<Bitmap?> = runCatching {
         withContext(decodeDispatcher) {
             BitmapFactory.Options().run {
                 inJustDecodeBounds = true // 메타 정보만
                 inPreferredConfig = Bitmap.Config.RGB_565
-                BitmapFactory.decodeFile(filePath, this)
+                BitmapFactory.decodeFile(decodeRequest.filePath, this)
 
                 inJustDecodeBounds = false
-                inSampleSize = calculateInSampleSize(this, reqWidth, reqHeight)
+                inSampleSize = calculateInSampleSize(this, decodeRequest.reqWidth, decodeRequest.reqHeight)
 
-                inScaled = false
-                BitmapFactory.decodeFile(filePath, this)
+                if(decodeRequest.inScale) {
+                    inScaled = true // 해상도 맞게
+                    if (outWidth >= outHeight) {
+                        inDensity = outWidth
+                        inTargetDensity = decodeRequest.reqWidth * inSampleSize
+                    } else {
+                        inDensity = outHeight
+                        inTargetDensity = decodeRequest.reqHeight * inSampleSize
+                    }
+                }
+
+                BitmapFactory.decodeFile(decodeRequest.filePath, this)
             }
         }
     }
