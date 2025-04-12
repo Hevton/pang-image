@@ -50,7 +50,7 @@ object DiskCache {
         }
     }
 
-    suspend fun add(cachePath: String, file: File) {
+    suspend fun set(cachePath: String, file: File) {
         cacheMutex.withLock {
             ensureInitialized(cachePath)
 
