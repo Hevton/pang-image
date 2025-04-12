@@ -4,6 +4,8 @@ import android.content.Context
 import com.example.imageloader.pang.util.domain.PangRequest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
@@ -12,9 +14,16 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 object PangDownloader {
+
+    private val mutexMap = ConcurrentHashMap<String, Mutex>()
+
+    private fun getLock(key: String): Mutex =
+        mutexMap.getOrPut(key) { Mutex() }
+
 
     private val defaultExceptionInterceptor =
         Interceptor { chain ->
@@ -58,11 +67,14 @@ object PangDownloader {
         val request = Request.Builder().url(url).build()
         withContext(downloadDispatcher) {
             val response = client.newCall(request).execute()
+            val downloadPath = "$path/$cacheKey"
             val file = File(context.cacheDir, cacheKey)
 
             response.body()?.byteStream()?.apply {
-                file.outputStream().use { output ->
-                    this.copyTo(output)
+                getLock(downloadPath).withLock {
+                    file.outputStream().use { output ->
+                        this.copyTo(output)
+                    }
                 }
             } ?: throw IOException("Response body is null")
             file
