@@ -18,6 +18,10 @@ object MemoryCache {
 
     fun get(key: String): Bitmap? = cache.get(key)
 
+    fun set(key: String, bitmap: Bitmap) {
+        cache.put(key, bitmap)
+    }
+
     fun remove(key: String) {
         cache.remove(key)
     }
