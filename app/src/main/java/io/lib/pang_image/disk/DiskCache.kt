@@ -43,4 +43,15 @@ object DiskCache {
             }
         }
     }
+
+    suspend fun add(context: Context, file: File) {
+        cacheMutex.withLock {
+            ensureInitialized(context)
+
+            file.setLastModified(System.currentTimeMillis())
+            files.add(file)
+            totalSize += file.length()
+            files.sortBy { it.lastModified() }
+        }
+    }
 }
