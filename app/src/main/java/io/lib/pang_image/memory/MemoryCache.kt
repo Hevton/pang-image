@@ -16,6 +16,8 @@ object MemoryCache {
         }
     }
 
+    fun get(key: String): Bitmap? = cache.get(key)
+
     fun remove(key: String) {
         cache.remove(key)
     }
