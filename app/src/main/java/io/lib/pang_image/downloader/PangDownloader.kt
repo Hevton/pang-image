@@ -70,9 +70,10 @@ object PangDownloader {
         withContext(downloadDispatcher) {
             val response = client.newCall(request).execute()
             val file = File(path, cacheKey)
+            val lockKey = "$path/$cacheKey"
 
             response.body()?.byteStream()?.apply {
-                getLock(path).withLock {
+                getLock(lockKey).withLock {
                     file.outputStream().use { output ->
                         this.copyTo(output)
                     }
