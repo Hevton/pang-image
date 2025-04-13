@@ -10,37 +10,38 @@ import kotlinx.coroutines.withContext
 object PangDecoder {
     suspend fun decodeFromFile(
         decodeRequest: DecodeRequest,
-        decodeDispatcher: CoroutineDispatcher = Dispatchers.Default
-    ): Result<Bitmap?> = runCatching {
-        withContext(decodeDispatcher) {
-            BitmapFactory.Options().run {
-                inJustDecodeBounds = true // 메타 정보만
-                inPreferredConfig = Bitmap.Config.RGB_565
-                BitmapFactory.decodeFile(decodeRequest.filePath, this)
+        decodeDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    ): Result<Bitmap> =
+        runCatching {
+            withContext(decodeDispatcher) {
+                BitmapFactory.Options().run {
+                    inJustDecodeBounds = true // 메타 정보만
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                    BitmapFactory.decodeFile(decodeRequest.filePath, this)
 
-                inJustDecodeBounds = false
-                inSampleSize = calculateInSampleSize(this, decodeRequest.reqWidth, decodeRequest.reqHeight)
+                    inJustDecodeBounds = false
+                    inSampleSize = calculateInSampleSize(this, decodeRequest.reqWidth, decodeRequest.reqHeight)
 
-                if(decodeRequest.inScale) {
-                    inScaled = true
-                    if (outWidth >= outHeight) {
-                        inDensity = outWidth
-                        inTargetDensity = decodeRequest.reqWidth * inSampleSize
-                    } else {
-                        inDensity = outHeight
-                        inTargetDensity = decodeRequest.reqHeight * inSampleSize
+                    if (decodeRequest.inScale) {
+                        inScaled = true
+                        if (outWidth >= outHeight) {
+                            inDensity = outWidth
+                            inTargetDensity = decodeRequest.reqWidth * inSampleSize
+                        } else {
+                            inDensity = outHeight
+                            inTargetDensity = decodeRequest.reqHeight * inSampleSize
+                        }
                     }
-                }
 
-                BitmapFactory.decodeFile(decodeRequest.filePath, this)
+                    BitmapFactory.decodeFile(decodeRequest.filePath, this)
+                }
             }
         }
-    }
 
     private fun calculateInSampleSize(
         options: BitmapFactory.Options,
         reqWidth: Int,
-        reqHeight: Int
+        reqHeight: Int,
     ): Int {
         val (height, width) = options.outHeight to options.outWidth
         var inSampleSize = 1

@@ -1,6 +1,6 @@
 package io.lib.pang_image.downloader
 
-import com.example.imageloader.pang.util.domain.PangRequest
+import io.lib.pang_image.domain.PangRequest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -48,24 +48,26 @@ object PangDownloader {
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(defaultExceptionInterceptor)
-        .dispatcher(Dispatcher().apply {
-            maxRequests = 128
-            maxRequestsPerHost = 20
-        })
+        .dispatcher(
+            Dispatcher().apply {
+                maxRequests = 128
+                maxRequestsPerHost = 20
+            },
+        )
         .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
         .build()
 
     suspend fun saveImage(
         request: PangRequest,
-        diskCacheKey: String
+        diskCacheKey: String,
     ): Result<File?> = download(diskCacheKey, request.url, request.cachePath)
 
     private suspend fun download(
         cacheKey: String,
         url: String,
         path: String,
-        downloadDispatcher: CoroutineDispatcher = Dispatchers.IO
-    ): Result<File?>  = runCatching {
+        downloadDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    ): Result<File?> = runCatching {
         val request = Request.Builder().url(url).build()
         withContext(downloadDispatcher) {
             val response = client.newCall(request).execute()
