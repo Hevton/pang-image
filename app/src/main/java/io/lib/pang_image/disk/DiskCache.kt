@@ -46,23 +46,6 @@ object DiskCache {
             }
         }
 
-    suspend fun clear(
-        cachePath: String,
-        newFileSize: Long,
-    ) = withContext(diskDispatcher) {
-        cacheMutex.withLock {
-            ensureInitialized(cachePath)
-
-            while (totalSize + newFileSize > MAXSIZE) {
-                val file = fileQueue.poll() ?: break
-                val size = file.length()
-                if (file.delete()) {
-                    totalSize -= size
-                }
-            }
-        }
-    }
-
     suspend fun set(
         cachePath: String,
         file: File,
@@ -70,9 +53,18 @@ object DiskCache {
         cacheMutex.withLock {
             ensureInitialized(cachePath)
 
+            val newFileSize = file.length()
+            while (totalSize + newFileSize > MAXSIZE) {
+                val oldest = fileQueue.poll() ?: break
+                val size = oldest.length()
+                if (oldest.delete()) {
+                    totalSize -= size
+                }
+            }
+
             file.setLastModified(System.currentTimeMillis())
             fileQueue.add(file)
-            totalSize += file.length()
+            totalSize += newFileSize
         }
     }
 }
