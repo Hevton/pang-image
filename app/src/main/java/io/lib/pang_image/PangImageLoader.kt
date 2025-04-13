@@ -3,6 +3,7 @@ package io.lib.pang_image
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
+import androidx.core.view.doOnPreDraw
 import io.lib.pang_image.domain.PangRequest
 import io.lib.pang_image.interceptor.PangInterceptor
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -30,46 +31,32 @@ object PangImageLoader {
         )
 
     fun ImageView.load(url: String) {
-        this.setImageDrawable(null)
-
+        setImageDrawable(null)
         (getTag(jobKey) as? Job)?.cancel()
 
-        addOnAttachStateChangeListener(
-            object : View.OnAttachStateChangeListener {
-                override fun onViewAttachedToWindow(v: View) {
-                    val job = loadInternalStart(this@load, url)
-                    setTag(jobKey, job)
-                }
+        doOnPreDraw {
+            val req = PangRequest(width, height, url, context.cacheDir.path)
 
-                override fun onViewDetachedFromWindow(v: View) {
-                    (getTag(jobKey) as? Job)?.cancel()
-                    setTag(jobKey, null)
-                    removeOnAttachStateChangeListener(this)
-                }
-            },
-        )
-    }
+            val job = scope.launch {
+                PangInterceptor.interceptor(req)
+                    .onSuccess {
+                        setImageBitmap(it) // 결과 도착 시에도 tag 확인
+                    }
+                    .onFailure {
+                        Log.e(TAG, "Exception: ${it.message}", it)
+                    }
+            }
 
-    private fun loadInternalStart(
-        imageView: ImageView,
-        url: String,
-    ): Job {
-        return scope.launch {
-            val request =
-                PangRequest(
-                    imageWidth = imageView.width,
-                    imageHeight = imageView.height,
-                    url = url,
-                    cachePath = imageView.context.cacheDir.toString(),
-                )
-
-            PangInterceptor.interceptor(request)
-                .onSuccess {
-                    imageView.setImageBitmap(it)
-                }
-                .onFailure {
-                    Log.e(TAG, "Exception: ${it.message}", it)
-                }
+            setTag(jobKey, job)
         }
+
+        addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) = Unit
+            override fun onViewDetachedFromWindow(v: View) {
+                (getTag(jobKey) as? Job)?.cancel()
+                setTag(jobKey, null)
+                removeOnAttachStateChangeListener(this)
+            }
+        })
     }
 }
