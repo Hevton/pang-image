@@ -10,15 +10,22 @@ object MemoryCache {
             return maxMemory / 8 // 전체 메모리의 1/8 사용
         }
 
-    private val cache = object : LruCache<String, Bitmap>(defaultMemoryCacheSize) {
-        override fun sizeOf(key: String, value: Bitmap): Int {
-            return value.byteCount / 1024 // KB 단위
+    private val cache =
+        object : LruCache<String, Bitmap>(defaultMemoryCacheSize) {
+            override fun sizeOf(
+                key: String,
+                value: Bitmap,
+            ): Int {
+                return value.byteCount / 1024 // KB 단위
+            }
         }
-    }
 
     fun get(key: String): Bitmap? = cache.get(key)
 
-    fun set(key: String, bitmap: Bitmap) {
+    fun set(
+        key: String,
+        bitmap: Bitmap,
+    ) {
         cache.put(key, bitmap)
     }
 
@@ -30,4 +37,3 @@ object MemoryCache {
         cache.evictAll()
     }
 }
-
