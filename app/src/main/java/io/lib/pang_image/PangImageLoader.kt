@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 
 object PangImageLoader {
     private const val TAG = "PangImageLoader"
-    private val jobKey = R.id.pang
+    private val jobKey = R.id.pang_job_key
+    private val urlKey = R.id.pang_url_key
 
     private val exceptionHandler =
         CoroutineExceptionHandler { _, throwable ->
@@ -32,21 +33,22 @@ object PangImageLoader {
 
     fun ImageView.load(url: String) {
         setImageDrawable(null)
+        setTag(urlKey, url)
         (getTag(jobKey) as? Job)?.cancel()
 
         doOnPreDraw {
-            val req = PangRequest(width, height, url, context.cacheDir.path)
+            if (getTag(urlKey) != url) return@doOnPreDraw // View 재활용 무시
 
+            val req = PangRequest(width, height, url, context.cacheDir.path)
             val job = scope.launch {
                 PangInterceptor.interceptor(req)
                     .onSuccess {
-                        setImageBitmap(it) // 결과 도착 시에도 tag 확인
+                        if (getTag(urlKey) == url) setImageBitmap(it) // 결과 도착 tag 확인
                     }
                     .onFailure {
                         Log.e(TAG, "Exception: ${it.message}", it)
                     }
             }
-
             setTag(jobKey, job)
         }
 
