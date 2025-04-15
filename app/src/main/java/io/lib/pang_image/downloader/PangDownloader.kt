@@ -1,20 +1,17 @@
 package io.lib.pang_image.downloader
 
 import io.lib.pang_image.domain.PangRequest
+import io.lib.pang_image.utils.dispatchers.DispatchersHelper
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import okhttp3.ConnectionPool
-import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 
 object PangDownloader {
     private const val ERROR_BAD_REQUEST = "Bad Request (400)"
@@ -48,13 +45,6 @@ object PangDownloader {
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(defaultExceptionInterceptor)
-        .dispatcher(
-            Dispatcher().apply {
-                maxRequests = 128
-                maxRequestsPerHost = 20
-            },
-        )
-        .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
         .build()
 
     suspend fun saveImage(
@@ -66,7 +56,7 @@ object PangDownloader {
         cacheKey: String,
         url: String,
         path: String,
-        downloadDispatcher: CoroutineDispatcher = Dispatchers.IO,
+        downloadDispatcher: CoroutineDispatcher = DispatchersHelper.downloadDispatcher,
     ): Result<File?> = runCatching {
         val request = Request.Builder().url(url).build()
         withContext(downloadDispatcher) {

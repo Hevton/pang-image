@@ -1,7 +1,7 @@
 package io.lib.pang_image.disk
 
+import io.lib.pang_image.utils.dispatchers.DispatchersHelper
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -18,7 +18,7 @@ object DiskCache {
     private lateinit var fileQueue: PriorityQueue<File> // 항상 cacheMutex 안에서만 접근
     private var totalSize = 0L // 항상 cacheMutex 안에서만 접근
 
-    private val diskDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val diskDispatcher: CoroutineDispatcher = DispatchersHelper.diskDispatcher
 
     private fun ensureInitialized(cachePath: String) { // 항상 cacheMutex 안에서만 접근
         if (!isInitialized.get()) {

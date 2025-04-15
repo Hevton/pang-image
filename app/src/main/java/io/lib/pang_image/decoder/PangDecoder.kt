@@ -3,14 +3,14 @@ package io.lib.pang_image.decoder
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import io.lib.pang_image.domain.DecodeRequest
+import io.lib.pang_image.utils.dispatchers.DispatchersHelper
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object PangDecoder {
     suspend fun decodeFromFile(
         decodeRequest: DecodeRequest,
-        decodeDispatcher: CoroutineDispatcher = Dispatchers.Default,
+        decodeDispatcher: CoroutineDispatcher = DispatchersHelper.decodeDispatcher,
     ): Result<Bitmap> =
         runCatching {
             withContext(decodeDispatcher) {
