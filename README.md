@@ -1,5 +1,42 @@
 
-### 기능명세서
+# PangImage
+  
+
+## 🚀전체 흐름도
+![라이브러리 플로우](./images/library-flow.png)
+  
+
+## 🔁캐시 흐름도
+![캐시 플로우](./images/cache-flow.png)
+  
+  
+
+## 📚컴포넌트 책임
+| 컴포넌트 | 책임 |
+| --- | --- |
+| 🧠 **MemoryCache** | in-memory 캐시로, Bitmap 객체를 저장/조회 |
+| 💾 **DiskCache** | 디스크 기반 캐시로, 이미지 파일의 저장, 삭제 및 조회를 담당하며 I/O 작업을 통해 캐시 용량을 관리 |
+| 🌐 **PangDownloader** | 네트워크로부터 이미지 파일을 다운로드하고, HTTP 응답 상태 코드에 따른 예외 처리를 수행 |
+| 🖼 **PangDecoder** | 디스크에 저장된 이미지 파일을 Bitmap으로 디코딩하며, 이미지의 크기 조정(inSampleSize, inDensity 등)을 통해 최적화된 결과 생성 |
+| 🔁 **PangInterceptor** | 전체 이미지 로딩 흐름을 제어. 메모리 캐시 → 디스크 캐시 → 다운로드 → 디코딩 → 캐시 저장 단계를 순차적으로 실행하여 최종 이미지를 반환 |
+| 📲 **PangImageLoader** | ImageView 확장 함수로, 코루틴을 통해 비동기 이미지 로딩 작업을 시작하며, 작업 취소 및 에러 핸들링을 관리하고 최종적으로 ImageView에 Bitmap을 적용 |
+  
+  
+
+## 🛠️ 사용 방법
+```kotlin
+imageView.load("https://example.image") {
+    inScale = true
+    retry = 3
+}
+```
+
+- inScale : 인메모리에서 이미지뷰에 더 정확한 사이즈로 리사이징합니다
+- retry : 과정 도중 에러(네트워크 등)로 인해 문제가 발생했을 때, 몇 번까지 재시도할지 정의합니다
+
+  
+
+### 💻 기능명세서
 
 - [x] 이미지를 저장해줄 다운로더를 설계한다
 - - [x] 응답 코드별 에러처리를 대응한다
