@@ -6,4 +6,5 @@ data class PangRequest(
     val url: String,
     val cachePath: String,
     val inScale: Boolean = false,
+    val retry: Int = 3,
 )

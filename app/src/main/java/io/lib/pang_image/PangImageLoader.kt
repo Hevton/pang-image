@@ -2,6 +2,7 @@ package io.lib.pang_image
 
 import android.util.Log
 import android.widget.ImageView
+import io.lib.pang_image.domain.PangOptionBuilder
 import io.lib.pang_image.domain.PangRequest
 import io.lib.pang_image.interceptor.PangInterceptor
 import io.lib.pang_image.utils.size.ViewSizeHelper
@@ -29,9 +30,14 @@ object PangImageLoader {
                 exceptionHandler,
         )
 
-    fun ImageView.load(url: String) {
+    fun ImageView.load(
+        url: String,
+        options: PangOptionBuilder.() -> Unit = {},
+    ) {
         (getTag(jobKey) as? Job)?.cancel()
         setImageDrawable(null)
+
+        val config = PangOptionBuilder().apply(options)
 
         scope.launch {
             setTag(jobKey, this.coroutineContext[Job])
@@ -42,6 +48,8 @@ object PangImageLoader {
                 imageHeight = size.height,
                 url = url,
                 cachePath = context.cacheDir.path,
+                inScale = config.inScale,
+                retry = config.retry,
             )
 
             PangInterceptor.interceptor(request)
