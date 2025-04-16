@@ -43,7 +43,7 @@ object PangInterceptor {
                             request.inScale,
                         ),
                     ).getOrElse { throw it }
-                        ?: throw PangException.PangDecodeException() // 발생할 수 있음
+                        ?: throw PangException.PangDecodeException // 발생할 수 있음
 
                 MemoryCache.set(memoryCacheKey, decoded)
                 return@runCatching decoded
@@ -65,7 +65,7 @@ object PangInterceptor {
                 PangDecoder.decodeFromFile(
                     DecodeRequest(request.cachePath + "/" + diskCacheKey, width, height, request.inScale),
                 ).getOrElse { throw it }
-                    ?: throw PangException.PangDecodeException() // 발생할 수 있음
+                    ?: throw PangException.PangDecodeException // 발생할 수 있음
 
             // 6. 메모리 캐시에 저장
             MemoryCache.set(memoryCacheKey, bitmap)
