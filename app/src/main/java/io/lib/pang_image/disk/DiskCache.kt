@@ -12,18 +12,19 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object DiskCache {
     private const val MAX_SIZE_BYTES = 100 * 1024 * 1024L // 100MB
+    private const val AVG_FILE_SIZE_BYTES = 500L * 1024
+    private const val INITIAL_CAPACITY = (MAX_SIZE_BYTES / AVG_FILE_SIZE_BYTES).toInt()
+
 
     private val cacheMutex = Mutex()
-
-    // 항상 cacheMutex 안에서만 접근
     private val diskDispatcher: CoroutineDispatcher = DispatchersHelper.diskDispatcher
+
+    // mutex 안에서만
     private var isInitialized = false
     private var currentSize = 0L
-
-    // accessOrder=true -> get/put 시에 최근 접근 순서로 정렬
-    private val cacheMap = object : LinkedHashMap<String, File>(128, 0.75f, true) {
+    private val cacheMap = object : LinkedHashMap<String, File>(INITIAL_CAPACITY, 0.75f, true) {
         override fun put(key: String, value: File): File? {
-            val old = super.put(key, value) // key에 대응되는 이전 항목이 있으면 참조
+            val old = super.put(key, value)
             if (old != null) currentSize -= old.length()
             currentSize += value.length()
             return old
@@ -36,31 +37,12 @@ object DiskCache {
                 if (file.delete()) {
                     currentSize -= size
                 }
-                return true // 가장 오래된(eldest) 엔트리를 맵에서 제거(evict)하라
+                return true
             }
-            return false // 용량 충분하면 맵 그대로
+            return false
         }
     }
 
-    // cacheMap에서 가져오거나, 파일 직접 접근하거나 선택
-    suspend fun get(cachePath: String, key: String): File? = withContext(diskDispatcher) {
-        cacheMutex.withLock {
-            val file = File(cachePath, key)
-            if (!file.exists()) return@withLock null
-            // accessOrder 갱신을 위해 LinkedHashMap get / put 호출해야함
-            cacheMap[key] = file
-            file
-        }
-    }
-
-    suspend fun set(cachePath: String, key: String) = withContext(diskDispatcher) {
-        cacheMutex.withLock {
-            ensureInitialized(cachePath)
-            cacheMap[key] = File(cachePath, key)
-        }
-    }
-
-    // 항상 cacheMutex 안에서만 접근
     private fun ensureInitialized(cachePath: String) {
         if (isInitialized) return
         val dir = File(cachePath)
@@ -72,4 +54,23 @@ object DiskCache {
         isInitialized = true
     }
 
+    suspend fun get(cachePath: String, key: String): File? = withContext(diskDispatcher) {
+        cacheMutex.withLock {
+            ensureInitialized(cachePath)
+
+            val file = cacheMap[key] ?: return@withLock null
+            file.setLastModified(System.currentTimeMillis())
+            file
+        }
+    }
+
+    suspend fun set(cachePath: String, key: String) = withContext(diskDispatcher) {
+        cacheMutex.withLock {
+            ensureInitialized(cachePath)
+
+            val file = File(cachePath, key)
+            file.setLastModified(System.currentTimeMillis())
+            cacheMap[key] = file
+        }
+    }
 }
