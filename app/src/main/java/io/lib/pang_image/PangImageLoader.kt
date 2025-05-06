@@ -1,7 +1,9 @@
 package io.lib.pang_image
 
+import android.graphics.Bitmap
 import android.util.Log
 import android.widget.ImageView
+import io.lib.pang_image.domain.ImageLoadListener
 import io.lib.pang_image.domain.PangOptionBuilder
 import io.lib.pang_image.domain.PangRequest
 import io.lib.pang_image.interceptor.PangInterceptor
@@ -33,8 +35,6 @@ object PangImageLoader {
     fun ImageView.load(
         url: String,
         options: PangOptionBuilder.() -> Unit = {},
-        onSuccess: ((android.graphics.Bitmap) -> Unit)? = null,
-        onFailure: ((Throwable) -> Unit)? = null,
     ) {
         (getTag(jobKey) as? Job)?.cancel()
         setImageDrawable(null)
@@ -57,11 +57,11 @@ object PangImageLoader {
             PangInterceptor.interceptor(request)
                 .onSuccess { bitmap ->
                     setImageBitmap(bitmap)
-                    onSuccess?.invoke(bitmap)
+                    config.listener?.onSuccess(bitmap)
                 }
                 .onFailure {
                     Log.e(TAG, "Exception: ${it.message}", it)
-                    onFailure?.invoke(it)
+                    config.listener?.onFailure(it)
                 }
         }
     }
