@@ -33,6 +33,8 @@ object PangImageLoader {
     fun ImageView.load(
         url: String,
         options: PangOptionBuilder.() -> Unit = {},
+        onSuccess: ((android.graphics.Bitmap) -> Unit)? = null,
+        onFailure: ((Throwable) -> Unit)? = null,
     ) {
         (getTag(jobKey) as? Job)?.cancel()
         setImageDrawable(null)
@@ -53,11 +55,13 @@ object PangImageLoader {
             )
 
             PangInterceptor.interceptor(request)
-                .onSuccess {
-                    setImageBitmap(it)
+                .onSuccess { bitmap ->
+                    setImageBitmap(bitmap)
+                    onSuccess?.invoke(bitmap)
                 }
                 .onFailure {
                     Log.e(TAG, "Exception: ${it.message}", it)
+                    onFailure?.invoke(it)
                 }
         }
     }
