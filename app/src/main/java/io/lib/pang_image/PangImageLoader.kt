@@ -1,9 +1,7 @@
 package io.lib.pang_image
 
-import android.graphics.Bitmap
 import android.util.Log
 import android.widget.ImageView
-import io.lib.pang_image.domain.ImageLoadListener
 import io.lib.pang_image.domain.PangOptionBuilder
 import io.lib.pang_image.domain.PangRequest
 import io.lib.pang_image.interceptor.PangInterceptor
