@@ -25,15 +25,28 @@
 
 ## 🛠️ 사용 방법
 ```kotlin
-imageView.load("https://example.image") {
+imageView.load("https://example.com/image.jpg") {
     inScale = true
     retry = 3
+    listener = object : ImageLoadListener {
+        override fun onSuccess(bitmap: Bitmap) {
+            // 이미지 로딩 성공 시 처리
+            // 예: 추가 이미지 처리, 로그 기록 등
+            Log.d("ImageLoad", "이미지 로딩 성공: ${bitmap.width}x${bitmap.height}")
+        }
+
+        override fun onFailure(error: Throwable) {
+            // 이미지 로딩 실패 시 처리
+            // 예: 에러 메시지 표시, 재시도 로직 등
+            Log.e("ImageLoad", "이미지 로딩 실패: ${error.message}")
+        }
+    }
 }
 ```
 
 - inScale : 인메모리에서 이미지뷰에 더 정확한 사이즈로 리사이징합니다
 - retry : 과정 도중 에러(네트워크 등)로 인해 문제가 발생했을 때, 몇 번까지 재시도할지 정의합니다
-
+- listener : 성공 / 실패에 대한 처리를 정의합니다
   
 
 ### 💻 기능명세서

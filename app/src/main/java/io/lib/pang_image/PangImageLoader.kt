@@ -53,11 +53,13 @@ object PangImageLoader {
             )
 
             PangInterceptor.interceptor(request)
-                .onSuccess {
-                    setImageBitmap(it)
+                .onSuccess { bitmap ->
+                    setImageBitmap(bitmap)
+                    config.listener?.onSuccess(bitmap)
                 }
                 .onFailure {
                     Log.e(TAG, "Exception: ${it.message}", it)
+                    config.listener?.onFailure(it)
                 }
         }
     }
