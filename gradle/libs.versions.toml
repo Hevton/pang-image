@@ -20,6 +20,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 
 [plugins]
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidApplication = { id = "com.android.application", version.ref = "agp" }
 jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" } 
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }

@@ -1,7 +1,7 @@
 plugins {
-    alias(pangLibs.plugins.androidLibrary)
-    alias(pangLibs.plugins.jetbrainsKotlinAndroid)
-    alias(pangLibs.plugins.ktlint)
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.jetbrainsKotlinAndroid)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -36,11 +36,11 @@ android {
 
 dependencies {
 
-    implementation(pangLibs.androidx.core.ktx)
-    implementation(pangLibs.androidx.appcompat)
-    implementation(pangLibs.material)
-    testImplementation(pangLibs.junit)
-    androidTestImplementation(pangLibs.androidx.junit)
-    androidTestImplementation(pangLibs.androidx.espresso.core)
-    implementation(pangLibs.retrofit)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    implementation(libs.retrofit)
 }
