@@ -2,12 +2,20 @@ package io.lib.pang_image.decoder
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Build.VERSION.SDK_INT
 import io.lib.pang_image.domain.DecodeRequest
 import io.lib.pang_image.utils.dispatchers.DispatchersHelper
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
 object PangDecoder {
+
+    private val DEFAULT_BITMAP_CONFIG = if (SDK_INT >= 26) {
+        Bitmap.Config.HARDWARE
+    } else {
+        Bitmap.Config.ARGB_8888
+    }
+
     suspend fun decodeFromFile(
         decodeRequest: DecodeRequest,
         decodeDispatcher: CoroutineDispatcher = DispatchersHelper.decodeDispatcher,
@@ -16,7 +24,7 @@ object PangDecoder {
             withContext(decodeDispatcher) {
                 BitmapFactory.Options().run {
                     inJustDecodeBounds = true // 메타 정보만
-                    inPreferredConfig = Bitmap.Config.HARDWARE
+                    inPreferredConfig = DEFAULT_BITMAP_CONFIG
                     BitmapFactory.decodeFile(decodeRequest.filePath, this)
 
                     inJustDecodeBounds = false
