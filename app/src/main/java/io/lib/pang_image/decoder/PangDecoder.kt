@@ -16,7 +16,7 @@ object PangDecoder {
             withContext(decodeDispatcher) {
                 BitmapFactory.Options().run {
                     inJustDecodeBounds = true // 메타 정보만
-                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inPreferredConfig = Bitmap.Config.HARDWARE
                     BitmapFactory.decodeFile(decodeRequest.filePath, this)
 
                     inJustDecodeBounds = false
