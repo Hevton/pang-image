@@ -51,10 +51,10 @@ object PangInterceptor {
 
             // 3. 다운로드
             PangDownloader.saveImage(request, diskCacheKey)
-                    .getOrElse {
-                        throw it
-                    }
-                    ?: throw IllegalStateException("Downloaded file is null")
+                .getOrElse {
+                    throw it
+                }
+                ?: throw IllegalStateException("Downloaded file is null")
 
             // 4. 디스크 저장
             DiskCache.set(request.cachePath, diskCacheKey)

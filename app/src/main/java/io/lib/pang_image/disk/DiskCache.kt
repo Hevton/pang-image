@@ -6,15 +6,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.IOException
-import java.util.PriorityQueue
-import java.util.concurrent.atomic.AtomicBoolean
 
 object DiskCache {
     private const val MAX_SIZE_BYTES = 100 * 1024 * 1024L // 100MB
     private const val AVG_FILE_SIZE_BYTES = 500L * 1024
     private const val INITIAL_CAPACITY = (MAX_SIZE_BYTES / AVG_FILE_SIZE_BYTES).toInt()
-
 
     private val cacheMutex = Mutex()
     private val diskDispatcher: CoroutineDispatcher = DispatchersHelper.diskDispatcher
