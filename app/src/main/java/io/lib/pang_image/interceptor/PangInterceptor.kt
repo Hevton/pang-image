@@ -38,18 +38,18 @@ object PangInterceptor {
                     return@runCatching bitmap
                 }
                 .onFailure { exception ->
-                    // 2-2. 코루틴 취소인 경우 예외를 다시 던져서 작업 종료
-                    if (exception is CancellationException) {
+                    // 2-2. 코루틴 취소 or OOM인 경우 예외를 다시 던져서 작업 종료
+                    if (exception is CancellationException || exception is OutOfMemoryError) {
                         throw exception
                     }
-                    // 2-3. 디코딩 실패인 경우 3단계 다운로드 진행
+                    // 2-3. 이외의 디코딩 실패인 경우 3단계 다운로드 진행
                 }
         }
 
-        // 3. 다운로드 & 디스크 저장 (재시도 O - 네트워크/디스크 문제는 일시적일 수 있음)
+        // 3. 다운로드 & 디스크 저장
         downloadAndCacheWithRetry(request, diskCacheKey)
 
-        // 4. 디코딩 & 메모리 캐시 저장 (재시도 X - 같은 파일이면 같은 결과)
+        // 4. 디코딩 & 메모리 캐시 저장
         val bitmap = decodeAndCache(request, memoryCacheKey, diskCacheKey)
             .getOrElse { throw it }
 
