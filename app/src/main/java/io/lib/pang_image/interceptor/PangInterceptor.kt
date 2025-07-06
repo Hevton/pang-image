@@ -73,7 +73,12 @@ object PangInterceptor {
     // 디코딩 & 메모리 캐시 저장
     private suspend fun decodeAndCache(request: PangRequest, memoryCacheKey: String, diskCacheKey: String): Result<Bitmap> = runCatching {
         val bitmap = PangDecoder.decodeFromFile(
-            DecodeRequest(request.cachePath + "/" + diskCacheKey, request.imageWidth, request.imageHeight, request.inScale),
+            DecodeRequest(
+                request.cachePath + "/" + diskCacheKey,
+                request.imageWidth,
+                request.imageHeight,
+                request.inScale,
+            ),
         ).getOrElse { throw it }
             ?: throw PangException.PangDecodeException
 
