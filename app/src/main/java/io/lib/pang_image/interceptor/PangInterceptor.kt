@@ -34,44 +34,52 @@ object PangInterceptor {
             // 2. 디스크 체크
             DiskCache.get(request.cachePath, diskCacheKey)?.let {
                 Log.d(TAG, "Disk Hit")
-                val decoded =
-                    PangDecoder.decodeFromFile(
-                        DecodeRequest(
-                            request.cachePath + "/" + diskCacheKey,
-                            request.imageWidth,
-                            request.imageHeight,
-                            request.inScale,
-                        ),
-                    ).getOrElse { throw it }
-                        ?: throw PangException.PangDecodeException // 발생할 수 있음
 
-                MemoryCache.set(memoryCacheKey, decoded)
-                return@runCatching decoded
+                decodeAndCache(request, memoryCacheKey, diskCacheKey)
+                    .onSuccess { bitmap ->
+                        return@runCatching bitmap
+                    }
+                    .onFailure { exception ->
+                        // 코루틴 취소인 경우 예외를 다시 던져서 종료
+                        if (exception is CancellationException) {
+                            throw exception
+                        }
+                        // 디코딩 실패인 경우 3단계 다운로드부터 진행
+                    }
             }
 
-            // 3. 다운로드
-            val file =
-                PangDownloader.saveImage(request, diskCacheKey)
-                    .getOrElse {
-                        throw it
-                    }
-                    ?: throw IllegalStateException("Downloaded file is null")
+            // 3. 다운로드 & 디스크 캐시에 저장
+            downloadAndCache(request, diskCacheKey)
 
-            // 4. 디스크 저장
-            DiskCache.set(request.cachePath, file)
-
-            // 5. 디코딩
-            val bitmap =
-                PangDecoder.decodeFromFile(
-                    DecodeRequest(request.cachePath + "/" + diskCacheKey, width, height, request.inScale),
-                ).getOrElse { throw it }
-                    ?: throw PangException.PangDecodeException // 발생할 수 있음
-
-            // 6. 메모리 캐시에 저장
-            MemoryCache.set(memoryCacheKey, bitmap)
+            // 4. 디코딩 & 메모리 캐시에 저장
+            val bitmap = decodeAndCache(request, memoryCacheKey, diskCacheKey)
+                .getOrElse { throw it }
 
             return@runCatching bitmap
         }
+    }
+
+    // 다운로드 & 디스크 캐시 저장
+    private suspend fun downloadAndCache(request: PangRequest, diskCacheKey: String) {
+        val file = PangDownloader.saveImage(request, diskCacheKey)
+            .getOrElse {
+                throw it
+            }
+            ?: throw IllegalStateException("Downloaded file is null")
+
+        DiskCache.set(request.cachePath, file)
+    }
+
+    // 디코딩 & 메모리 캐시 저장
+    private suspend fun decodeAndCache(request: PangRequest, memoryCacheKey: String, diskCacheKey: String): Result<Bitmap> = runCatching {
+        val bitmap = PangDecoder.decodeFromFile(
+            DecodeRequest(request.cachePath + "/" + diskCacheKey, request.imageWidth, request.imageHeight, request.inScale),
+        ).getOrElse { throw it }
+            ?: throw PangException.PangDecodeException
+
+        MemoryCache.set(memoryCacheKey, bitmap)
+
+        bitmap
     }
 
     private suspend fun <T> retryIfNotCoroutineException(
