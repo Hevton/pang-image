@@ -32,13 +32,13 @@ object PangInterceptor {
         DiskCache.get(request.cachePath, diskCacheKey)?.let {
             Log.d(TAG, "Disk Hit")
 
-            decodeAndCache(request, memoryCacheKey, diskCacheKey)
+            decodeAndCacheWithRetry(request, memoryCacheKey, diskCacheKey)
                 .onSuccess { bitmap ->
                     // 2-1. 디코딩 성공하면 리턴
                     return@runCatching bitmap
                 }
                 .onFailure { exception ->
-                    // 2-2. 코루틴 취소 or OOM인 경우 예외를 다시 던져서 작업 종료
+                    // 2-2. 코루틴 취소나 OOM인 경우 예외를 다시 던져서 작업 종료
                     if (exception is CancellationException || exception is OutOfMemoryError) {
                         throw exception
                     }
@@ -50,7 +50,7 @@ object PangInterceptor {
         downloadAndCacheWithRetry(request, diskCacheKey)
 
         // 4. 디코딩 & 메모리 캐시 저장
-        val bitmap = decodeAndCache(request, memoryCacheKey, diskCacheKey)
+        val bitmap = decodeAndCacheWithRetry(request, memoryCacheKey, diskCacheKey)
             .getOrElse { throw it }
 
         return@runCatching bitmap
@@ -74,25 +74,29 @@ object PangInterceptor {
         }.getOrElse { throw it }
     }
 
-    // 디코딩 & 메모리 캐시 저장
-    private suspend fun decodeAndCache(
+    // 디코딩 & 메모리 캐시 저장 (재시도 포함)
+    private suspend fun decodeAndCacheWithRetry(
         request: PangRequest,
         memoryCacheKey: String,
         diskCacheKey: String,
-    ): Result<Bitmap> = runCatching {
-        val bitmap = PangDecoder.decodeFromFile(
-            DecodeRequest(
-                request.cachePath + "/" + diskCacheKey,
-                request.imageWidth,
-                request.imageHeight,
-                request.inScale,
-            ),
-        ).getOrElse { throw it }
-            ?: throw PangException.PangDecodeException
+    ): Result<Bitmap> = retryIfNotCoroutineException(
+        maxAttempts = request.retry,
+    ) {
+        runCatching {
+            val bitmap = PangDecoder.decodeFromFile(
+                DecodeRequest(
+                    request.cachePath + "/" + diskCacheKey,
+                    request.imageWidth,
+                    request.imageHeight,
+                    request.inScale,
+                ),
+            ).getOrElse { throw it }
+                ?: throw PangException.PangDecodeException
 
-        MemoryCache.set(memoryCacheKey, bitmap)
+            MemoryCache.set(memoryCacheKey, bitmap)
 
-        bitmap
+            bitmap
+        }
     }
 
     private suspend fun <T> retryIfNotCoroutineException(
