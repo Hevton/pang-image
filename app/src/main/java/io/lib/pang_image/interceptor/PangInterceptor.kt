@@ -65,11 +65,11 @@ object PangInterceptor {
             maxAttempts = request.retry,
         ) {
             runCatching {
-                val file = PangDownloader.saveImage(request, diskCacheKey)
+                PangDownloader.saveImage(request, diskCacheKey)
                     .getOrElse { throw it }
                     ?: throw IllegalStateException("Downloaded file is null")
 
-                DiskCache.set(request.cachePath, file)
+                DiskCache.set(request.cachePath, diskCacheKey)
             }
         }.getOrElse { throw it }
     }
