@@ -6,65 +6,67 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.PriorityQueue
-import java.util.concurrent.atomic.AtomicBoolean
 
 object DiskCache {
-    private const val MAXSIZE = 100 * 1024 * 1024L // 100MB
+    private const val MAX_SIZE_BYTES = 100 * 1024 * 1024L // 100MB
+    private const val AVG_FILE_SIZE_BYTES = 500L * 1024
+    private const val INITIAL_CAPACITY = (MAX_SIZE_BYTES / AVG_FILE_SIZE_BYTES).toInt()
 
     private val cacheMutex = Mutex()
-    private val isInitialized = AtomicBoolean(false)
-
-    private lateinit var fileQueue: PriorityQueue<File> // 항상 cacheMutex 안에서만 접근
-    private var totalSize = 0L // 항상 cacheMutex 안에서만 접근
-
     private val diskDispatcher: CoroutineDispatcher = DispatchersHelper.diskDispatcher
 
-    private fun ensureInitialized(cachePath: String) { // 항상 cacheMutex 안에서만 접근
-        if (!isInitialized.get()) {
-            val dir = File(cachePath)
-            val files = dir.listFiles()?.toMutableList() ?: mutableListOf()
-            fileQueue =
-                PriorityQueue<File>(files.size) { a, b ->
-                    a.lastModified().compareTo(b.lastModified())
-                }.apply {
-                    addAll(files)
+    // mutex 안에서만
+    private var isInitialized = false
+    private var currentSize = 0L
+    private val cacheMap = object : LinkedHashMap<String, File>(INITIAL_CAPACITY, 0.75f, true) {
+        override fun put(key: String, value: File): File? {
+            val old = super.put(key, value)
+            if (old != null) currentSize -= old.length()
+            currentSize += value.length()
+            return old
+        }
+
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, File>?): Boolean {
+            if (eldest != null && currentSize > MAX_SIZE_BYTES) {
+                val file = eldest.value
+                val size = file.length()
+                if (file.delete()) {
+                    currentSize -= size
                 }
-            totalSize = files.sumOf { it.length() }
-            isInitialized.set(true)
+                return true
+            }
+            return false
         }
     }
 
-    suspend fun get(
-        cachePath: String,
-        key: String,
-    ): File? =
-        withContext(diskDispatcher) {
-            cacheMutex.withLock {
-                val file = File(cachePath, key)
-                if (file.exists()) file else null
+    private fun ensureInitialized(cachePath: String) {
+        if (isInitialized) return
+        val dir = File(cachePath)
+        if (dir.exists() && dir.isDirectory) {
+            dir.listFiles()?.forEach { file ->
+                cacheMap[file.name] = file
             }
         }
+        isInitialized = true
+    }
 
-    suspend fun set(
-        cachePath: String,
-        file: File,
-    ) = withContext(diskDispatcher) {
+    suspend fun get(cachePath: String, key: String): File? = withContext(diskDispatcher) {
         cacheMutex.withLock {
             ensureInitialized(cachePath)
 
-            val newFileSize = file.length()
-            while (totalSize + newFileSize > MAXSIZE) {
-                val oldest = fileQueue.poll() ?: break
-                val size = oldest.length()
-                if (oldest.delete()) {
-                    totalSize -= size
-                }
-            }
-
+            val file = cacheMap[key] ?: return@withLock null
             file.setLastModified(System.currentTimeMillis())
-            fileQueue.add(file)
-            totalSize += newFileSize
+            file
+        }
+    }
+
+    suspend fun set(cachePath: String, key: String) = withContext(diskDispatcher) {
+        cacheMutex.withLock {
+            ensureInitialized(cachePath)
+
+            val file = File(cachePath, key)
+            file.setLastModified(System.currentTimeMillis())
+            cacheMap[key] = file
         }
     }
 }
