@@ -1,39 +1,31 @@
 package io.lib.pang_image.memory
-
 import android.graphics.Bitmap
-import android.util.LruCache
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 object MemoryCache {
-    private val defaultMemoryCacheSize: Int
-        get() {
-            val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
-            return maxMemory / 8 // 전체 메모리의 1/8 사용
-        }
+    private val mutex = Mutex()
 
-    private val cache =
-        object : LruCache<String, Bitmap>(defaultMemoryCacheSize) {
-            override fun sizeOf(
-                key: String,
-                value: Bitmap,
-            ): Int {
-                return value.byteCount / 1024 // KB 단위
-            }
-        }
+    suspend fun get(key: String): Bitmap? = mutex.withLock {
+        val bitmap = StrongMemoryCache.get(key) ?: WeakMemoryCache.get(key)
 
-    fun get(key: String): Bitmap? = cache.get(key)
-
-    fun set(
-        key: String,
-        bitmap: Bitmap,
-    ) {
-        cache.put(key, bitmap)
+        return@withLock bitmap
     }
 
-    fun remove(key: String) {
-        cache.remove(key)
+
+    suspend fun set(key: String, bitmap: Bitmap) = mutex.withLock {
+        StrongMemoryCache.set(key, bitmap)
     }
 
-    fun clear() {
-        cache.evictAll()
+    suspend fun remove(key: String): Boolean = mutex.withLock {
+        val removedStrong = StrongMemoryCache.remove(key)
+        val removedWeak = WeakMemoryCache.remove(key)
+        return removedStrong || removedWeak
+    }
+
+    suspend fun clear() = mutex.withLock {
+        StrongMemoryCache.clear()
+        WeakMemoryCache.clear()
     }
 }
+
