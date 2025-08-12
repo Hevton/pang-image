@@ -8,7 +8,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.Request
+import retrofit2.Retrofit
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
@@ -47,6 +47,12 @@ object PangDownloader {
         .addInterceptor(defaultExceptionInterceptor)
         .build()
 
+    private val retrofit = Retrofit.Builder()
+        .client(client)
+        .build()
+
+    private val api = retrofit.create(DownloadApi::class.java)
+
     suspend fun saveImage(
         request: PangRequest,
         diskCacheKey: String,
@@ -58,9 +64,8 @@ object PangDownloader {
         path: String,
         downloadDispatcher: CoroutineDispatcher = DispatchersHelper.downloadDispatcher,
     ): Result<File?> = runCatching {
-        val request = Request.Builder().url(url).build()
         withContext(downloadDispatcher) {
-            val response = client.newCall(request).execute()
+            val response = api.get(url)
             val file = File(path, cacheKey)
             val lockKey = "$path/$cacheKey"
 
